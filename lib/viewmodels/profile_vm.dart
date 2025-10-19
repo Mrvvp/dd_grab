@@ -1,8 +1,9 @@
+import 'package:dd_grab/view/loginpage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 
 final profileViewModelProvider = ChangeNotifierProvider(
   (ref) => ProfileViewModel(),
@@ -16,6 +17,9 @@ class ProfileViewModel extends ChangeNotifier {
   String phone = "9995300000";
 
   bool _hasFetchedProfileData = false;
+  bool _isLoggingOut = false; // NEW
+
+  bool get isLoggingOut => _isLoggingOut; // Getter
 
   void editProfile(
     String newName,
@@ -36,8 +40,9 @@ class ProfileViewModel extends ChangeNotifier {
   Future<void> fetchProfileData() async {
     if (_hasFetchedProfileData) return;
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('USER_TOKEN');
+    final secureStorage = const FlutterSecureStorage();
+    final token = await secureStorage.read(key: 'USER_TOKEN');
+
     if (token == null) {
       debugPrint('No token found in SharedPreferences');
       return;
@@ -80,5 +85,33 @@ class ProfileViewModel extends ChangeNotifier {
   Future<void> refreshProfileData() async {
     _hasFetchedProfileData = false;
     await fetchProfileData();
+  }
+
+  Future<void> logout(BuildContext context, WidgetRef ref) async {
+    _isLoggingOut = true;
+    notifyListeners();
+    debugPrint("Logout started");
+
+    try {
+      await Future.delayed(const Duration(seconds: 2));
+      const storage = FlutterSecureStorage();
+      await storage.delete(key: 'USER_TOKEN');
+      debugPrint("JWT token deleted");
+
+      _isLoggingOut = false;
+      notifyListeners();
+      debugPrint("Logout finished, navigating to LoginPage");
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+
+      debugPrint("Bottom nav index reset");
+    } catch (e) {
+      _isLoggingOut = false;
+      notifyListeners();
+      debugPrint("Logout failed: $e");
+    }
   }
 }

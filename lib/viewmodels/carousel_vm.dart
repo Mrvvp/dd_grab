@@ -10,7 +10,7 @@ final bannerProvider = Provider<List<BannerModel>>((ref) {
     ),
     BannerModel(
       title: 'Special Deal',
-      subtitle: 'Redmi A4 + 64GB RAM',
+      subtitle: 'Redmi A4',
       imagePath: 'assets/images/image 2.png',
     ),
   ];

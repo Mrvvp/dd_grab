@@ -1,4 +1,3 @@
-import 'package:dd_grab/view/main_navigation_page.dart';
 import 'package:dd_grab/view/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,20 +20,19 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           textTheme: GoogleFonts.poppinsTextTheme(),
           scaffoldBackgroundColor: Colors.white,
-          appBarTheme: const AppBarTheme(
+          appBarTheme: AppBarTheme(
             backgroundColor: Colors.white,
             elevation: 0,
 
-            iconTheme: IconThemeData(color: Colors.black),
-            titleTextStyle: TextStyle(
+            iconTheme: const IconThemeData(color: Colors.black),
+            titleTextStyle: GoogleFonts.poppins(
               color: Colors.black,
               fontSize: 20,
-              fontWeight: FontWeight.w600,
             ),
           ),
         ),
         debugShowCheckedModeBanner: false,
-        home: MainNavigationPage(), // Navigates to HomePage on start
+        home: SplashScreen(),
       ),
     );
   }

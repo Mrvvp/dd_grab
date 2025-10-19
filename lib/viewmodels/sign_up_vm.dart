@@ -1,9 +1,11 @@
+import 'package:dd_grab/view/loginpage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-final signUpViewModelProvider = ChangeNotifierProvider(
+/// ✅ Riverpod provider for SignUpViewModel
+final signUpViewModelProvider = ChangeNotifierProvider<SignUpViewModel>(
   (ref) => SignUpViewModel(),
 );
 
@@ -19,6 +21,7 @@ class SignUpViewModel extends ChangeNotifier {
 
   bool isLoading = false;
 
+  /// ✅ Signup function using HTTP POST
   Future<void> signup(BuildContext context, WidgetRef ref) async {
     final firstName = firstNameController.text.trim();
     final lastName = lastNameController.text.trim();
@@ -28,6 +31,7 @@ class SignUpViewModel extends ChangeNotifier {
     final password = passwordController.text.trim();
     final confirmPassword = confirmPasswordController.text.trim();
 
+    // ✅ Validation
     if ([
       firstName,
       lastName,
@@ -67,12 +71,16 @@ class SignUpViewModel extends ChangeNotifier {
         }),
       );
 
+      final data = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
         _showMessage(context, 'Account created successfully!');
-        // Navigate or reset form
+        _clearControllers();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+        );
       } else {
-        final responseData = jsonDecode(response.body);
-        _showMessage(context, responseData['message'] ?? 'Signup failed');
+        _showMessage(context, data['message'] ?? 'Signup failed');
       }
     } catch (e) {
       _showMessage(context, 'Error: $e');
@@ -80,6 +88,16 @@ class SignUpViewModel extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  void _clearControllers() {
+    firstNameController.clear();
+    lastNameController.clear();
+    usernameController.clear();
+    emailController.clear();
+    phoneController.clear();
+    passwordController.clear();
+    confirmPasswordController.clear();
   }
 
   void _showMessage(BuildContext context, String message) {

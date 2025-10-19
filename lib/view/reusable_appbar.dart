@@ -1,58 +1,77 @@
+import 'package:dd_grab/models/address_model.dart';
+import 'package:dd_grab/view/address.dart';
 import 'package:dd_grab/view/cart.dart';
+import 'package:dd_grab/view/icon_badge.dart';
 import 'package:dd_grab/view/notification.dart';
+import 'package:dd_grab/view/search_page.dart';
+import 'package:dd_grab/view/welcome.dart';
+import 'package:dd_grab/viewmodels/address_vm.dart';
+import 'package:dd_grab/viewmodels/cart_vm.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class CustomHomeAppBar extends StatelessWidget {
+class CustomHomeAppBar extends ConsumerWidget {
   const CustomHomeAppBar({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final addressState = ref.watch(addressViewModelProvider);
+    final cartState = ref.watch(cartViewModelProvider);
+
+    // Get location text
+    final locationText = _getLocationText(addressState.addresses);
+
+    // Get counts
+    final cartItemCount = cartState.cartItems.length;
+    const notificationCount = 1;
+
     return SizedBox(
-      // Give it some fixed height or let the parent constrain it
-      height: 220, // Adjust as needed
+      height: 220,
       child: Stack(
         children: [
-          // 1) Yellow background with rounded corners
+          // Yellow background container
           Container(
             decoration: BoxDecoration(
-              color: Colors.yellow[600], // bright lime-y color
-              borderRadius: BorderRadius.only(
+              color: Colors.yellow[600],
+              borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(20),
                 bottomRight: Radius.circular(20),
               ),
             ),
           ),
 
-          // 2) Wavy lines image on top
-          //    If the image is actually white and opaque,
-          //    it will cover your yellow color. Make sure
-          //    it's transparent or partially transparent.
+          // Top-right decorative image
           Positioned(
             top: 0,
             right: 0,
             child: Image.asset(
               'assets/images/appbarlines.png',
               fit: BoxFit.cover,
+              cacheWidth: 200, // ✅ Cache at optimal resolution
             ),
           ),
+
+          // Bottom-left decorative image
           Positioned(
             bottom: 0,
             left: 0,
             child: Image.asset(
               'assets/images/appbarlines.png',
               fit: BoxFit.cover,
+              cacheWidth: 200, // ✅ Cache at optimal resolution
             ),
           ),
 
-          // 3) The AppBar content
+          // Main content
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 60, 16, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // "Location" label
+                // Location label
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 5),
                   child: Text(
@@ -64,99 +83,27 @@ class CustomHomeAppBar extends StatelessWidget {
                   ),
                 ),
 
-                // Location row + badge icons
+                // Location + Icons Row
                 Row(
                   children: [
-                    // Left side: location icon + text
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, color: Colors.red),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Cochin, Kerala - 683520',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
+                    // Location Area
+                    Expanded(
+                      child: _buildLocationButton(context, locationText),
                     ),
-                    Spacer(),
 
-                    // Right side: cart & notifications with badges
-                    Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => CartPage(),
-                              ), // or NotificationsPage()
-                            ); // replace with your cart route
-                          },
-                          child: _iconWithBadge(
-                            imagePath: 'assets/images/shopping-cart 1.png',
-                            count: 3,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => NotificationPage(),
-                              ), // or NotificationsPage()
-                            ); // replace with your notification route
-                          },
-                          child: _iconWithBadge(
-                            imagePath: 'assets/images/alarm-bell 1.png',
-                            count: 1,
-                          ),
-                        ),
-                      ],
-                    ),
+                    const SizedBox(width: 12),
+
+                    // Cart & Notification Icons
+                    _buildCartIcon(context, cartItemCount),
+                    const SizedBox(width: 16),
+                    _buildNotificationIcon(context, notificationCount),
                   ],
                 ),
 
                 const SizedBox(height: 16),
 
-                // Search Bar + Filter icon
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: "Search",
-                          hintStyle: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w300,
-                          ),
-                          prefixIcon: const Icon(CupertinoIcons.search),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.tune_sharp),
-                    ),
-                  ],
-                ),
+                // Search Bar
+                _buildSearchBar(context),
               ],
             ),
           ),
@@ -165,40 +112,149 @@ class CustomHomeAppBar extends StatelessWidget {
     );
   }
 
-  // Simple badge widget that displays a custom image
-  // with a red badge if count > 0
-  Widget _iconWithBadge({required String imagePath, required int count}) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        // The white container behind the icon
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Image.asset(imagePath, width: 24, height: 24),
-        ),
+  // ✅ Extract location text logic
+  String _getLocationText(List<Address> addresses) {
+    if (addresses.isEmpty) return 'Select Address';
 
-        // The red circle badge
-        if (count > 0)
-          Positioned(
-            right: 2,
-            top: -1,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-              ),
-              child: Text(
-                '$count',
-                style: const TextStyle(color: Colors.white, fontSize: 15),
-              ),
+    try {
+      final defaultAddress = addresses.firstWhere((addr) => addr.isDefault);
+      return '${defaultAddress.city} - ${defaultAddress.zip}';
+    } catch (_) {
+      return 'Select Address';
+    }
+  }
+
+  // ✅ Extract location button
+  Widget _buildLocationButton(BuildContext context, String locationText) {
+    return InkWell(
+      onTap: () => _handleLocationTap(context),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Icon(Icons.location_on, color: Colors.red),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              locationText,
+              style: GoogleFonts.poppins(fontSize: 16, color: Colors.black),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-      ],
+        ],
+      ),
+    );
+  }
+
+  // ✅ Extract cart icon
+  Widget _buildCartIcon(BuildContext context, int count) {
+    return GestureDetector(
+      onTap: () => _handleCartTap(context),
+      child: IconWithBadge(
+        imagePath: 'assets/images/shopping-cart 1.png',
+        count: count,
+      ),
+    );
+  }
+
+  // ✅ Extract notification icon
+  Widget _buildNotificationIcon(BuildContext context, int count) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const NotificationPage()),
+        );
+      },
+      child: IconWithBadge(
+        imagePath: 'assets/images/alarm-bell 1.png',
+        count: count,
+      ),
+    );
+  }
+
+  // ✅ Extract search bar
+  Widget _buildSearchBar(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SearchPage()),
+        );
+      },
+      child: IgnorePointer(
+        child: TextField(
+          decoration: InputDecoration(
+            hintText: "Search",
+            hintStyle: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w300,
+            ),
+            prefixIcon: const Icon(CupertinoIcons.search),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ✅ Extract location tap handler
+  Future<void> _handleLocationTap(BuildContext context) async {
+    final secureStorage = const FlutterSecureStorage();
+    final token = await secureStorage.read(key: 'USER_TOKEN');
+
+    if (context.mounted) {
+      if (token == null || token.isEmpty) {
+        _showLoginPrompt(context, 'Please login to manage addresses');
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => WelcomePage()),
+        );
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AddressPage()),
+        );
+      }
+    }
+  }
+
+  // ✅ Extract cart tap handler
+  Future<void> _handleCartTap(BuildContext context) async {
+    final secureStorage = const FlutterSecureStorage();
+    final token = await secureStorage.read(key: 'USER_TOKEN');
+
+    if (context.mounted) {
+      if (token == null || token.isEmpty) {
+        _showLoginPrompt(context, 'Please login to view your cart');
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => WelcomePage()),
+        );
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const CartPage()),
+        );
+      }
+    }
+  }
+
+  // ✅ Reusable snackbar method
+  void _showLoginPrompt(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.black,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
     );
   }
 }

@@ -1,10 +1,10 @@
 import 'package:dd_grab/view/main_navigation_page.dart';
+import 'package:dd_grab/viewmodels/bottom_nav_bar_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 
 final loginViewModelProvider = ChangeNotifierProvider(
   (ref) => LoginViewModel(),
@@ -15,8 +15,9 @@ class LoginViewModel extends ChangeNotifier {
   final passwordController = TextEditingController();
 
   bool isLoading = false;
+  final _secureStorage = const FlutterSecureStorage();
 
-  Future<void> login(BuildContext context) async {
+  Future<void> login(BuildContext context, WidgetRef ref) async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
@@ -43,13 +44,16 @@ class LoginViewModel extends ChangeNotifier {
         final responseData = jsonDecode(response.body);
         final token = responseData['data']['token'];
         print('Logged in token: $token');
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('USER_TOKEN', token);
+        await _secureStorage.write(key: 'USER_TOKEN', value: token);
+        ref.read(bottomNavProvider.notifier).setIndex(0);
         // Navigate to main app screen
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => MainNavigationPage()),
+          (route) => false,
         );
+        emailController.clear();
+        passwordController.clear();
       } else {
         final responseData = jsonDecode(response.body);
         _showMessage(context, responseData['message'] ?? 'Login failed');
@@ -63,13 +67,17 @@ class LoginViewModel extends ChangeNotifier {
   }
 
   void _showMessage(BuildContext context, String msg) {
-    Fluttertoast.showToast(
-      msg: msg,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.black87,
-      textColor: Colors.white,
-      fontSize: 16.0,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          msg,
+          style: const TextStyle(color: Colors.white, fontSize: 16),
+        ),
+        backgroundColor: Colors.black87,
+        behavior:
+            SnackBarBehavior.floating, // optional: makes it float above bottom
+        duration: const Duration(seconds: 2),
+      ),
     );
   }
 }

@@ -7,7 +7,7 @@ class SignUpPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final viewModel = ref.watch(signUpViewModelProvider);
+    final vm = ref.watch(signUpViewModelProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
@@ -43,53 +43,32 @@ class SignUpPage extends ConsumerWidget {
               ),
               const SizedBox(height: 32),
 
-              // Form fields
-              _buildTextField(
-                controller: viewModel.firstNameController,
-                hint: 'First Name',
-              ),
+              // 🔤 Form fields
+              _buildField(vm.firstNameController, 'First Name'),
               const SizedBox(height: 16),
-              _buildTextField(
-                controller: viewModel.lastNameController,
-                hint: 'Last Name',
-              ),
+              _buildField(vm.lastNameController, 'Last Name'),
               const SizedBox(height: 16),
-              _buildTextField(
-                controller: viewModel.usernameController,
-                hint: 'Username',
-              ),
+              _buildField(vm.usernameController, 'Username'),
               const SizedBox(height: 16),
-              _buildTextField(
-                controller: viewModel.emailController,
-                hint: 'Email',
-              ),
+              _buildField(vm.emailController, 'Email'),
               const SizedBox(height: 16),
-              _buildTextField(
-                controller: viewModel.phoneController,
-                hint: 'Phone Number',
-              ),
+              _buildField(vm.phoneController, 'Phone Number'),
               const SizedBox(height: 16),
-              _buildTextField(
-                controller: viewModel.passwordController,
-                hint: 'Password',
-                obscureText: true,
-              ),
+              _buildField(vm.passwordController, 'Password', obscure: true),
               const SizedBox(height: 16),
-              _buildTextField(
-                controller: viewModel.confirmPasswordController,
-                hint: 'Confirm Password',
-                obscureText: true,
+              _buildField(
+                vm.confirmPasswordController,
+                'Confirm Password',
+                obscure: true,
               ),
               const SizedBox(height: 24),
 
-              // Submit button
+              // 🔘 Submit button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed:
-                      viewModel.isLoading
-                          ? null
-                          : () => viewModel.signup(context, ref),
+                      vm.isLoading ? null : () => vm.signup(context, ref),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.yellow[600],
                     foregroundColor: Colors.black,
@@ -99,7 +78,7 @@ class SignUpPage extends ConsumerWidget {
                     ),
                   ),
                   child:
-                      viewModel.isLoading
+                      vm.isLoading
                           ? const CircularProgressIndicator(color: Colors.black)
                           : const Text(
                             'Create an account',
@@ -115,28 +94,27 @@ class SignUpPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hint,
-    bool obscureText = false,
+  Widget _buildField(
+    TextEditingController controller,
+    String hint, {
+    bool obscure = false,
   }) {
     return TextField(
       controller: controller,
-      obscureText: obscureText,
+      obscureText: obscure,
+      cursorColor: Colors.white,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.white70),
         enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.yellow),
+          borderSide: const BorderSide(color: Colors.yellow),
           borderRadius: BorderRadius.circular(6),
         ),
         focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.yellowAccent),
+          borderSide: const BorderSide(color: Colors.yellowAccent),
           borderRadius: BorderRadius.circular(6),
         ),
-        filled: true,
-        fillColor: Colors.transparent,
       ),
     );
   }

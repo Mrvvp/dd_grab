@@ -1,157 +1,234 @@
-import 'package:dd_grab/view/debitcard.dart';
-import 'package:dd_grab/view/simpleappbar.dart';
+import 'package:dd_grab/provider/counter_provider.dart';
+import 'package:dd_grab/viewmodels/bottom_nav_bar_vm.dart';
+import 'package:dd_grab/viewmodels/purchase_vm.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cferrorresponse/cferrorresponse.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfdropcheckoutpayment.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfsession/cfsession.dart';
+import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
+import 'package:flutter_cashfree_pg_sdk/utils/cfexceptions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../viewmodels/purchase_vm.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpaymentgateway/cfpaymentgatewayservice.dart';
+import 'package:lottie/lottie.dart';
 
-class PurchaseMethodPage extends ConsumerWidget {
-  const PurchaseMethodPage({super.key});
+class PaymentScreen extends ConsumerStatefulWidget {
+  final double totalAmount;
+  final String? userToken;
+  final List<Map<String, dynamic>>? cartItems;
+  // NEW:
+  final bool isBuyNow;
+  final int? orderId;
+  final String? cfOrderId;
+  final String? paymentSessionId;
+
+  // For Buy Now, pass isBuyNow: true and the order info
+  // For Cart, pass isBuyNow: false and only cartItems
+
+  const PaymentScreen({
+    super.key,
+    required this.totalAmount,
+    required this.userToken,
+    this.cartItems,
+    this.isBuyNow = false,
+    this.orderId,
+    this.cfOrderId,
+    this.paymentSessionId,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selectedPayment = ref.watch(selectedPaymentProvider);
+  ConsumerState<PaymentScreen> createState() => _PaymentScreenState();
+}
 
-    return Scaffold(
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
+class _PaymentScreenState extends ConsumerState<PaymentScreen> {
+  CFPaymentGatewayService? cfPaymentGatewayService;
+  bool _paymentCompleted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startPayment();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final paymentState = ref.watch(paymentViewModelProvider);
+
+    // listen when session becomes ready
+    ref.listen(paymentViewModelProvider, (previous, current) {
+      if (previous?.paymentSessionId == null &&
+          current.paymentSessionId != null &&
+          current.cfOrderId != null) {
+        _launchCashfree(current.cfOrderId!, current.paymentSessionId!);
+      }
+    });
+
+    return WillPopScope(
+      onWillPop: () async {
+        if (!_paymentCompleted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please wait, payment is in progress...'),
               backgroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              behavior: SnackBarBehavior.floating,
             ),
-            onPressed:
-                selectedPayment != null
-                    ? () {
-                      if (selectedPayment == "Debit Card") {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const DebitCardPage(),
-                          ),
-                        );
-                      }
-                    }
-                    : null,
-            child: Text(
-              'Pay ₹9,499.00 Securely',
-              style: GoogleFonts.poppins(color: Colors.white),
-            ),
+          );
+          return false; // Block navigation
+        }
+        return true; // Allow navigation after payment completes
+      },
+      child: Scaffold(
+        body: Center(
+          child: Text(
+            paymentState.paymentInProgress
+                ? "Processing Payment..."
+                : "Initializing Payment...",
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+            textAlign: TextAlign.center,
           ),
         ),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SimpleAppBar(), // ⬅️ Added here
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              "Purchase",
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              "User Information",
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.w300,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          _infoRow("Email", "delightinter@gmail.com"),
-          _infoRow("Name", "Delight Benedict"),
-          _infoRow("Expected Delivery", "31 Jan, 2024"),
-          _infoRow("Amount Payable", "₹9,499.00"),
-          const Divider(height: 32, thickness: .5),
-          _paymentOption(ref, "UPI"),
-          _paymentOption(ref, "Debit Card"),
-          _paymentOption(ref, "Net Banking"),
-        ],
-      ),
     );
   }
 
-  Widget _infoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: GoogleFonts.poppins(fontWeight: FontWeight.w400)),
-          Text(value, style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
+  void _startPayment() {
+    final paymentVm = ref.read(paymentViewModelProvider.notifier);
 
-  Widget _paymentOption(WidgetRef ref, String title) {
-    final selected = ref.watch(selectedPaymentProvider);
+    paymentVm.resetPayment();
 
-    // Function to map payment titles to respective image assets
-    String getIconPath(String title) {
-      switch (title) {
-        case 'UPI':
-          return 'assets/images/upi-icon.png'; // Make sure this exists
-        case 'Debit Card':
-          return 'assets/images/card.png';
-        case 'Net Banking':
-          return 'assets/images/bank.png';
-        default:
-          return 'assets/images/plus.png';
-      }
+    // ✅ Check if order data exists (regardless of isBuyNow flag)
+    if (widget.orderId != null &&
+        widget.cfOrderId != null &&
+        widget.paymentSessionId != null) {
+      // ✅ Order already created - just set the data
+      debugPrint('✅ Using existing order data');
+      debugPrint('Order ID: ${widget.orderId}');
+      debugPrint('CF Order ID: ${widget.cfOrderId}');
+
+      paymentVm.setOrderData(
+        orderId: widget.orderId!,
+        cfOrderId: widget.cfOrderId!,
+        paymentSessionId: widget.paymentSessionId!,
+      );
+    } else {
+      // ✅ No order data - need to create new order (Buy Now flow)
+      debugPrint('📦 Creating new order');
+
+      paymentVm.startPaymentProcess(
+        userToken: widget.userToken,
+        cartItems: widget.cartItems,
+        singleProductId: null,
+        singleQuantity: null,
+        totalAmount: widget.totalAmount,
+      );
     }
+  }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade200),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Image.asset(
-            getIconPath(title),
-            width: 28,
-            height: 28,
-            fit: BoxFit.contain,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              title,
-              style: GoogleFonts.poppins(),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.add_circle_rounded,
-              color: selected == title ? Colors.green : Colors.grey,
-            ),
-            onPressed: () {
-              if (selected == title) {
-                ref.read(selectedPaymentProvider.notifier).state = null;
-              } else {
-                ref.read(selectedPaymentProvider.notifier).state = title;
-              }
+  void _launchCashfree(String cfOrderId, String paymentSessionId) {
+    try {
+      cfPaymentGatewayService = CFPaymentGatewayService();
+      cfPaymentGatewayService!.setCallback(_onPaymentSuccess, _onPaymentError);
+
+      final cfSession =
+          CFSessionBuilder()
+              .setEnvironment(CFEnvironment.SANDBOX)
+              .setOrderId(cfOrderId)
+              .setPaymentSessionId(paymentSessionId)
+              .build();
+
+      var cfDropCheckoutPayment =
+          CFDropCheckoutPaymentBuilder().setSession(cfSession).build();
+
+      cfPaymentGatewayService!.doPayment(cfDropCheckoutPayment);
+    } on CFException catch (e) {
+      debugPrint("CFException: ${e.message}");
+    } catch (e) {
+      debugPrint("Error launching Cashfree: $e");
+    }
+  }
+
+  Future<void> _onPaymentSuccess(String orderId) async {
+    _paymentCompleted = true;
+    await ref
+        .read(paymentViewModelProvider.notifier)
+        .confirmPaymentOrder(userToken: widget.userToken, status: 'SUCCESS');
+
+    if (!mounted) return;
+
+    _showDialog(
+      title: "Payment Successful",
+      animationAsset: "assets/animations/Success animation.json",
+      isSuccess: true,
+    );
+  }
+
+  Future<void> _onPaymentError(CFErrorResponse error, String orderId) async {
+    _paymentCompleted = true;
+    await ref
+        .read(paymentViewModelProvider.notifier)
+        .confirmPaymentOrder(userToken: widget.userToken, status: 'FAILED');
+
+    if (!mounted) return;
+
+    _showDialog(
+      title: "Payment Failed !!",
+      animationAsset: "assets/animations/Warning.json",
+      isSuccess: false,
+    );
+  }
+
+  void _showDialog({
+    required String title,
+    required String animationAsset,
+    required bool isSuccess,
+  }) {
+    final countdownNotifier = ref.read(countdownProvider.notifier);
+
+    countdownNotifier.startCountdown(
+      onComplete: () {
+        Navigator.pop(context);
+        ref.read(bottomNavProvider.notifier).setIndex(0);
+
+        if (isSuccess) {
+          Navigator.popUntil(context, (route) => route.isFirst);
+        } else {
+          Navigator.popUntil(context, (route) => route.isFirst);
+        }
+      },
+    );
+
+    showDialog(
+      barrierColor: Colors.white,
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (_) => Consumer(
+            builder: (context, ref, child) {
+              final seconds = ref.watch(countdownProvider);
+
+              return AlertDialog(
+                backgroundColor: Colors.white,
+                title: Text(title, style: const TextStyle(color: Colors.black)),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Lottie.asset(
+                      animationAsset,
+                      width: 150,
+                      height: 150,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      "Redirecting in $seconds seconds...",
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              );
             },
           ),
-        ],
-      ),
     );
   }
 }

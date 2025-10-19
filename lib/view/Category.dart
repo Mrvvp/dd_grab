@@ -42,9 +42,8 @@ class CategoryBody extends ConsumerWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        /* ───────── Left vertical main‑category menu ───────── */
         Padding(
-          padding: const EdgeInsets.only(left: 16, top: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           child: Container(
             width: 100,
             decoration: BoxDecoration(
@@ -111,15 +110,14 @@ class CategoryBody extends ConsumerWidget {
           ),
         ),
 
-        /* ───────── Right list of sub‑categories ───────── */
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 25),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             child:
                 vm.currentSubcategories.isEmpty
                     ? const Center(child: Text('No sub‑categories'))
                     : ListView.separated(
-                      padding: EdgeInsets.zero,
+                      padding: EdgeInsets.symmetric(vertical: 20),
                       itemCount: vm.currentSubcategories.length,
                       separatorBuilder:
                           (_, __) => const Column(
@@ -161,9 +159,12 @@ class CategoryBody extends ConsumerWidget {
                                   MaterialPageRoute(
                                     builder:
                                         (_) => ProductListPage(
+                                          categoryName:
+                                              selectedSubCat['slug'].toString(),
                                           categoryId:
                                               selectedSubCat['id']
                                                   .toString(), // ✅ Pass subcategory ID
+                                          apiUrl: '',
                                         ),
                                   ),
                                 );

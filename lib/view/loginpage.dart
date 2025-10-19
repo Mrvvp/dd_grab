@@ -1,4 +1,5 @@
 // login_page.dart (MVVM with Riverpod)
+
 import 'package:dd_grab/viewmodels/login_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,14 +13,7 @@ class LoginPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      appBar: AppBar(backgroundColor: const Color(0xFF121212), elevation: 0),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: SingleChildScrollView(
@@ -39,13 +33,14 @@ class LoginPage extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Welcome back! Sign in using your\nemail to continue us',
+                'Welcome back! Log in using your\nemail to continue us',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
               const SizedBox(height: 32),
 
               TextField(
+                cursorColor: Colors.white,
                 controller: viewModel.emailController,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
@@ -66,6 +61,7 @@ class LoginPage extends ConsumerWidget {
               const SizedBox(height: 16),
 
               TextField(
+                cursorColor: Colors.white,
                 controller: viewModel.passwordController,
                 obscureText: true,
                 style: const TextStyle(color: Colors.white),
@@ -92,7 +88,7 @@ class LoginPage extends ConsumerWidget {
                   onPressed:
                       viewModel.isLoading
                           ? null
-                          : () => viewModel.login(context),
+                          : () => viewModel.login(context, ref),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.yellow[600],
                     foregroundColor: Colors.black,
@@ -115,14 +111,6 @@ class LoginPage extends ConsumerWidget {
                             'Login',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {},
-                child: const Text(
-                  'Forgot password?',
-                  style: TextStyle(color: Colors.white70),
                 ),
               ),
             ],

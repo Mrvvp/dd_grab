@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shimmer/shimmer.dart';
 
 class CategoryItem extends StatelessWidget {
   final String imagePath;
   final String label;
-  final VoidCallback? onTap; // 👈  optional tap callback
+  final VoidCallback? onTap;
 
   const CategoryItem({
     super.key,
@@ -34,12 +35,37 @@ class CategoryItem extends StatelessWidget {
                 fit: BoxFit.contain,
               ),
             ),
-            SizedBox(height: 10),
             Text(
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               label,
-              style: GoogleFonts.poppins(fontSize: 10),
+              style: GoogleFonts.poppins(fontSize: 8),
               textAlign: TextAlign.center,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CategoryItemShimmer extends StatelessWidget {
+  const CategoryItemShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Container(
+        width: 80,
+        margin: const EdgeInsets.only(right: 12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            CircleAvatar(radius: 26, backgroundColor: Colors.white),
+            const SizedBox(height: 10),
+            Container(height: 10, width: 40, color: Colors.white),
           ],
         ),
       ),

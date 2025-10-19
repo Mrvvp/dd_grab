@@ -1,12 +1,15 @@
 import 'package:dd_grab/view/loginpage.dart';
+import 'package:dd_grab/view/main_navigation_page.dart';
 import 'package:dd_grab/view/signup_page.dart';
+import 'package:dd_grab/viewmodels/bottom_nav_bar_vm.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class WelcomePage extends StatelessWidget {
+class WelcomePage extends ConsumerWidget {
   const WelcomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       body: Stack(
         children: [
@@ -129,6 +132,21 @@ class WelcomePage extends StatelessWidget {
                             'Already Have an Account',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          ref.read(bottomNavProvider.notifier).setIndex(0);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MainNavigationPage(),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          'Continue as a guest?',
+                          style: TextStyle(color: Colors.white70),
                         ),
                       ),
                     ],
