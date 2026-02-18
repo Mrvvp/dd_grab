@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:dd_grab/config/api_config.dart';
 import 'package:http/http.dart' as http;
 
 class NoAddressException implements Exception {
@@ -12,9 +13,6 @@ class EmptyCartException implements Exception {
 }
 
 class PaymentService {
-  static const String baseUrl =
-      "https://dd-api.codesprint.cloud/api/v1"; // Replace with your actual API URL
-
   /// ✅ For single product (from product page)
   Future<Map<String, dynamic>> initiateOrder({
     required String userToken,
@@ -32,7 +30,7 @@ class PaymentService {
         print('📤 [API CALL] Initiating CART order...');
       }
 
-      print('➡ URL: $baseUrl/order/initiate-order');
+      print('➡ URL: ${ApiConfig.orderInitiate}');
       print('➡ Headers: {Authorization: Bearer $userToken}');
       if (orderData != null)
         print('➡ Body: ${jsonEncode(orderData)}');
@@ -40,7 +38,7 @@ class PaymentService {
         print('➡ No Body (cart handled on server side)');
 
       final response = await http.post(
-        Uri.parse('$baseUrl/order/initiate-order'),
+        Uri.parse(ApiConfig.orderInitiate),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $userToken',
@@ -96,7 +94,7 @@ class PaymentService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('https://dd-api.codesprint.cloud/api/v1/order/confirm-order'),
+        Uri.parse(ApiConfig.orderConfirm),
         headers: {
           'Authorization': 'Bearer $userToken',
           'Content-Type': 'application/json',

@@ -1,11 +1,11 @@
 // lib/features/orders/data/repository/order_repository.dart
 import 'dart:convert';
+import 'package:dd_grab/config/api_config.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../models/order_model.dart';
 
 class OrderRepository {
-  final String baseUrl = "https://dd-api.codesprint.cloud/api/v1";
   final FlutterSecureStorage storage = const FlutterSecureStorage();
 
   Future<List<OrderModel>> fetchOrders() async {
@@ -17,7 +17,7 @@ class OrderRepository {
       throw Exception("User token not found");
     }
 
-    final url = Uri.parse("$baseUrl/order/list-order");
+    final url = Uri.parse(ApiConfig.orderList);
 
     print("=== Fetch Orders API Call ===");
     print("➡️ URL: $url");
@@ -27,7 +27,7 @@ class OrderRepository {
       url,
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer $token", // ✅ token added
+        "Authorization": "Bearer $token",
       },
     );
 

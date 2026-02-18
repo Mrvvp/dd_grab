@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:dd_grab/config/api_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -28,13 +29,6 @@ class ProductDetailsViewModel extends ChangeNotifier {
   bool? get isPincodeValid => _isPincodeValid;
   String? get pincodeErrorMessage => _pincodeErrorMessage;
 
-  // API endpoint
-  final String _baseUrl =
-      'https://dd-api.codesprint.cloud/api/v1/product/product-by-id';
-
-  final String _pincodeCheckUrl =
-      'https://dd-api.codesprint.cloud/api/v1/product/check-pincode';
-
   // Method to fetch product details from the API
   Future<void> fetchProductDetails(String productId) async {
     _isLoading = true;
@@ -42,7 +36,7 @@ class ProductDetailsViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.get(Uri.parse('$_baseUrl/$productId'));
+      final response = await http.get(Uri.parse('${ApiConfig.productById}/$productId'));
       if (response.statusCode == 200) {
         final jsonMap = jsonDecode(response.body);
         _productDetails = jsonMap['data'];
@@ -91,7 +85,7 @@ class ProductDetailsViewModel extends ChangeNotifier {
 
     try {
       final response = await http.post(
-        Uri.parse(_pincodeCheckUrl),
+        Uri.parse(ApiConfig.checkPincode),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'pincode': _enteredPincode}),
       );

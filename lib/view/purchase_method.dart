@@ -132,7 +132,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
       final cfSession =
           CFSessionBuilder()
-              .setEnvironment(CFEnvironment.SANDBOX)
+              .setEnvironment(CFEnvironment.PRODUCTION)
               .setOrderId(cfOrderId)
               .setPaymentSessionId(paymentSessionId)
               .build();

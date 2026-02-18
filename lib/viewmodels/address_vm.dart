@@ -1,4 +1,6 @@
+import 'package:dd_grab/config/api_config.dart';
 import 'package:dd_grab/models/address_model.dart';
+import 'package:dd_grab/viewmodels/location_vm.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -36,9 +38,7 @@ class AddressViewModel extends StateNotifier<AddressState> {
       final secureStorage = const FlutterSecureStorage();
       final token = await secureStorage.read(key: 'USER_TOKEN');
 
-      final uri = Uri.parse(
-        "https://dd-api.codesprint.cloud/api/v1/user/get-addresses",
-      );
+      final uri = Uri.parse(ApiConfig.userAddresses);
       print('Fetching addresses from: $uri');
       print('Using token: $token');
 
@@ -184,7 +184,7 @@ class AddressViewModel extends StateNotifier<AddressState> {
       }
 
       final response = await http.post(
-        Uri.parse("https://dd-api.codesprint.cloud/api/v1/user/add-address"),
+        Uri.parse(ApiConfig.userAddAddress),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -216,9 +216,7 @@ class AddressViewModel extends StateNotifier<AddressState> {
       final token = await secureStorage.read(key: 'USER_TOKEN');
 
       final response = await http.put(
-        Uri.parse(
-          "https://dd-api.codesprint.cloud/api/v1/user/edit-address/$id",
-        ),
+        Uri.parse('${ApiConfig.userEditAddress}/$id'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -248,9 +246,7 @@ class AddressViewModel extends StateNotifier<AddressState> {
       }
 
       final response = await http.put(
-        Uri.parse(
-          "https://dd-api.codesprint.cloud/api/v1/user/set-default-address/$id",
-        ),
+        Uri.parse('${ApiConfig.userSetDefaultAddress}/$id'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -281,9 +277,7 @@ class AddressViewModel extends StateNotifier<AddressState> {
       }
 
       final response = await http.delete(
-        Uri.parse(
-          "https://dd-api.codesprint.cloud/api/v1/user/delete-address/$id",
-        ),
+        Uri.parse('${ApiConfig.userDeleteAddress}/$id'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -304,6 +298,14 @@ class AddressViewModel extends StateNotifier<AddressState> {
     } catch (e) {
       return 'Delete Address Error: $e';
     }
+  }
+
+  void clearAddresses() {
+    state = state.copyWith(
+      addresses: [],
+      isLoading: false,
+      error: '',
+    );
   }
 }
 
@@ -331,5 +333,26 @@ class AddressState {
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
     );
+  }
+
+  // Helper method to get display location text
+  String getDisplayLocation(LocationState? currentLocation) {
+    // Priority: 1. Saved addresses, 2. Current GPS location, 3. "Select Address"
+    if (addresses.isNotEmpty) {
+      try {
+        final defaultAddress = addresses.firstWhere((addr) => addr.isDefault);
+        return '${defaultAddress.city} - ${defaultAddress.zip}';
+      } catch (_) {
+        return addresses.first.city.isNotEmpty
+            ? '${addresses.first.city} - ${addresses.first.zip}'
+            : 'Select Address';
+      }
+    }
+    
+    if (currentLocation != null && currentLocation.locationText.isNotEmpty) {
+      return currentLocation.locationText;
+    }
+    
+    return 'Select Address';
   }
 }

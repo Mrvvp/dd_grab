@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:dd_grab/config/api_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -28,7 +29,7 @@ class CategoryViewModel extends ChangeNotifier {
   Future<void> fetchMainCategories() async {
     try {
       final res = await http.get(
-        Uri.parse('https://dd-api.codesprint.cloud/api/v1/category/list'),
+        Uri.parse(ApiConfig.categoryList),
       );
 
       if (res.statusCode != 200) {

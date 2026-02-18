@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dd_grab/config/api_config.dart';
 import 'package:dd_grab/service/payment_services.dart';
 import 'package:dd_grab/view/address.dart';
 import 'package:dd_grab/view/cart.dart';
@@ -182,7 +183,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                                         : imageItem?.toString() ?? '';
 
                                 final imageUrl =
-                                    'https://ecom-stag.codesprint.cloud/storage/$imagePath';
+                                    ApiConfig.getImageUrl(imagePath);
                                 return Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 4.0,
@@ -479,7 +480,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                           final rpImageUrl =
                               imagePath.startsWith('http')
                                   ? imagePath
-                                  : 'https://ecom-stag.codesprint.cloud/storage/$imagePath';
+                                  : ApiConfig.getImageUrl(imagePath);
 
                           final rpName = rp['slug'] ?? 'Unnamed';
                           final rpPrice =

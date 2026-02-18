@@ -1,5 +1,6 @@
 // lib/features/orders/view/order_list_page.dart
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dd_grab/config/api_config.dart';
 import 'package:dd_grab/provider/orderlist_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -105,8 +106,8 @@ class OrderListPage extends ConsumerWidget {
                                           height: 80,
 
                                           fit: BoxFit.contain,
-                                          imageUrl:
-                                              "https://ecom-stag.codesprint.cloud/storage/${product.productImages.first}",
+                                          imageUrl: ApiConfig.getImageUrl(
+                                              product.productImages.first),
                                           width: 150,
                                         ),
                                       )

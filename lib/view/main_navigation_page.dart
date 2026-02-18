@@ -61,7 +61,9 @@ class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
 
         print('✅ User data loading started');
       } else {
-        print('👤 Guest user browsing');
+        print('👤 Guest user browsing - clearing addresses');
+        // Clear addresses for guest users
+        ref.read(addressViewModelProvider.notifier).clearAddresses();
       }
     } catch (e) {
       print('⚠️ Initialization error: $e');

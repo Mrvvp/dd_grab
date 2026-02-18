@@ -1,11 +1,10 @@
 import 'dart:convert';
+import 'package:dd_grab/config/api_config.dart';
 import 'package:dd_grab/models/product_model.dart';
 import 'package:http/http.dart' as http;
 
 class ProductRepository {
-  final String baseUrl;
-
-  ProductRepository({required this.baseUrl});
+  ProductRepository();
 
   Future<List<Product>> searchProducts(
     String query, {
@@ -15,7 +14,7 @@ class ProductRepository {
     String sortOrder = 'desc',
   }) async {
     final url = Uri.parse(
-      '$baseUrl/search/product?q=$query&page=$page&limit=$limit&sortBy=$sortBy&sortOrder=$sortOrder',
+      '${ApiConfig.searchProduct}?q=$query&page=$page&limit=$limit&sortBy=$sortBy&sortOrder=$sortOrder',
     );
     final response = await http.get(url);
 

@@ -1,3 +1,5 @@
+import 'package:dd_grab/config/api_config.dart';
+
 class Product {
   final String id;
   final String name;
@@ -50,7 +52,7 @@ class Product {
     final List<dynamic>? images = json['images'];
     final String imageUrl =
         (images != null && images.isNotEmpty)
-            ? 'https://ecom-stag.codesprint.cloud/storage/${images.first}'
+            ? ApiConfig.getImageUrl(images.first.toString())
             : '';
 
     // ✅ CRITICAL FIX: Handle both int (0/1) and bool (true/false)

@@ -17,13 +17,34 @@ class ProfilePage extends ConsumerStatefulWidget {
   ConsumerState<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends ConsumerState<ProfilePage> {
+class _ProfilePageState extends ConsumerState<ProfilePage> with WidgetsBindingObserver {
   bool _isAuthenticated = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkAuthentication();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshProfileIfAuthenticated();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh profile when page becomes visible again
+    _refreshProfileIfAuthenticated();
   }
 
   Future<void> _checkAuthentication() async {
@@ -44,11 +65,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
+  Future<void> _refreshProfileIfAuthenticated() async {
+    final secureStorage = const FlutterSecureStorage();
+    final token = await secureStorage.read(key: 'USER_TOKEN');
+    
+    if (mounted) {
+      setState(() {
+        _isAuthenticated = token != null && token.isNotEmpty;
+      });
+    }
+
+    if (token == null || token.isEmpty) {
+      // If no token, clear profile data
+      ref.read(profileViewModelProvider.notifier).clearProfileData();
+    } else {
+      // If token exists, refresh profile data
+      ref.read(profileViewModelProvider.notifier).refreshProfileData();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    Future.microtask(() {
-      ref.read(profileViewModelProvider.notifier).fetchProfileData();
-    });
     final profileVM = ref.watch(profileViewModelProvider);
 
     return Scaffold(
@@ -132,22 +169,24 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
                               if (token == null || token.isEmpty) {
                                 // Guest user - show message and redirect to login
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Please login to continue'),
-                                    backgroundColor: Colors.black,
-                                    behavior: SnackBarBehavior.floating,
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please login to continue'),
+                                      backgroundColor: Colors.black,
+                                      behavior: SnackBarBehavior.floating,
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
 
-                                // Navigate to welcome/login page
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => WelcomePage(),
-                                  ),
-                                );
+                                  // Navigate to welcome/login page
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => WelcomePage(),
+                                    ),
+                                  );
+                                }
                                 return;
                               }
                               await Navigator.push(
@@ -163,10 +202,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                       ),
                                 ),
                               );
-                              // Refresh profile after returning
-                              ref
-                                  .read(profileViewModelProvider.notifier)
-                                  .refreshProfileData();
+                              // Refresh profile after returning from edit page
+                              if (mounted) {
+                                _refreshProfileIfAuthenticated();
+                              }
                             },
                             child: const Text(
                               "Edit",
@@ -238,30 +277,34 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
                         if (token == null || token.isEmpty) {
                           // Guest user - show message and redirect to login
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please login to continue'),
-                              backgroundColor: Colors.black,
-                              behavior: SnackBarBehavior.floating,
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please login to continue'),
+                                backgroundColor: Colors.black,
+                                behavior: SnackBarBehavior.floating,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
 
-                          // Navigate to welcome/login page
+                            // Navigate to welcome/login page
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => WelcomePage(),
+                              ),
+                            );
+                          }
+                          return;
+                        }
+                        if (context.mounted) {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => WelcomePage(),
+                              builder: (context) => OrderListPage(),
                             ),
                           );
-                          return;
                         }
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => OrderListPage(),
-                          ),
-                        );
                       },
                     ),
                     Divider(color: Colors.grey.shade300),
@@ -276,32 +319,36 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
                         if (token == null || token.isEmpty) {
                           // Guest user - show message and redirect to login
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please login to continue'),
-                              backgroundColor: Colors.black,
-                              behavior: SnackBarBehavior.floating,
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please login to continue'),
+                                backgroundColor: Colors.black,
+                                behavior: SnackBarBehavior.floating,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
 
-                          // Navigate to welcome/login page
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => WelcomePage(),
-                            ),
-                          );
+                            // Navigate to welcome/login page
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => WelcomePage(),
+                              ),
+                            );
+                          }
                           return;
                         }
 
                         // User is authenticated - open address page
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AddressPage(),
-                          ),
-                        );
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AddressPage(),
+                            ),
+                          );
+                        }
                       },
                     ),
 

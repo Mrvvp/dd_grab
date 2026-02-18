@@ -1,4 +1,3 @@
-import 'package:dd_grab/models/address_model.dart';
 import 'package:dd_grab/view/address.dart';
 import 'package:dd_grab/view/cart.dart';
 import 'package:dd_grab/view/icon_badge.dart';
@@ -7,6 +6,7 @@ import 'package:dd_grab/view/search_page.dart';
 import 'package:dd_grab/view/welcome.dart';
 import 'package:dd_grab/viewmodels/address_vm.dart';
 import 'package:dd_grab/viewmodels/cart_vm.dart';
+import 'package:dd_grab/viewmodels/location_vm.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,10 +19,11 @@ class CustomHomeAppBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final addressState = ref.watch(addressViewModelProvider);
+    final locationState = ref.watch(locationViewModelProvider);
     final cartState = ref.watch(cartViewModelProvider);
 
-    // Get location text
-    final locationText = _getLocationText(addressState.addresses);
+    // Get location text with priority: saved addresses > current location > "Select Address"
+    final locationText = addressState.getDisplayLocation(locationState);
 
     // Get counts
     final cartItemCount = cartState.cartItems.length;
@@ -88,7 +89,7 @@ class CustomHomeAppBar extends ConsumerWidget {
                   children: [
                     // Location Area
                     Expanded(
-                      child: _buildLocationButton(context, locationText),
+                      child: _buildLocationButton(context, ref, locationText),
                     ),
 
                     const SizedBox(width: 12),
@@ -112,22 +113,11 @@ class CustomHomeAppBar extends ConsumerWidget {
     );
   }
 
-  // ✅ Extract location text logic
-  String _getLocationText(List<Address> addresses) {
-    if (addresses.isEmpty) return 'Select Address';
-
-    try {
-      final defaultAddress = addresses.firstWhere((addr) => addr.isDefault);
-      return '${defaultAddress.city} - ${defaultAddress.zip}';
-    } catch (_) {
-      return 'Select Address';
-    }
-  }
 
   // ✅ Extract location button
-  Widget _buildLocationButton(BuildContext context, String locationText) {
+  Widget _buildLocationButton(BuildContext context, WidgetRef ref, String locationText) {
     return InkWell(
-      onTap: () => _handleLocationTap(context),
+      onTap: () => _handleLocationTap(context, ref),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -205,12 +195,17 @@ class CustomHomeAppBar extends ConsumerWidget {
   }
 
   // ✅ Extract location tap handler
-  Future<void> _handleLocationTap(BuildContext context) async {
+  Future<void> _handleLocationTap(BuildContext context, WidgetRef ref) async {
     final secureStorage = const FlutterSecureStorage();
     final token = await secureStorage.read(key: 'USER_TOKEN');
 
     if (context.mounted) {
       if (token == null || token.isEmpty) {
+        // For guest users, try to get current location when tapping
+        final locationState = ref.read(locationViewModelProvider);
+        if (locationState.locationText.isEmpty) {
+          ref.read(locationViewModelProvider.notifier).getCurrentLocation();
+        }
         _showLoginPrompt(context, 'Please login to manage addresses');
         Navigator.push(
           context,
@@ -248,13 +243,15 @@ class CustomHomeAppBar extends ConsumerWidget {
 
   // ✅ Reusable snackbar method
   void _showLoginPrompt(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.black,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.black,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 }

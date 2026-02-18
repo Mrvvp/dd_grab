@@ -1,3 +1,4 @@
+import 'package:dd_grab/config/api_config.dart';
 import 'package:dd_grab/models/product_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -44,9 +45,6 @@ class WishlistState {
   }
 }
 
-// API base URL
-const String baseUrl = 'https://dd-api.codesprint.cloud/api/v1';
-
 // Flutter secure storage instance
 final storage = FlutterSecureStorage();
 
@@ -89,7 +87,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     try {
       final token = await ref.watch(userTokenProvider.future);
       final url = Uri.parse(
-        '$baseUrl/product/wishlist?limit=$limit&page=$page',
+        '${ApiConfig.wishlist}?limit=$limit&page=$page',
       );
       final response = await http.get(
         url,
@@ -157,7 +155,7 @@ class WishlistViewModel extends StateNotifier<WishlistState> {
     final token = await ref.watch(userTokenProvider.future);
 
     try {
-      final url = Uri.parse('$baseUrl/product/toggle-wishlist/$productId');
+      final url = Uri.parse('${ApiConfig.toggleWishlist}/$productId');
       final response = await http.post(
         url,
         headers: {

@@ -1,8 +1,9 @@
+import 'dart:convert';
+import 'package:dd_grab/config/api_config.dart';
 import 'package:dd_grab/view/loginpage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 /// ✅ Riverpod provider for SignUpViewModel
 final signUpViewModelProvider = ChangeNotifierProvider<SignUpViewModel>(
@@ -53,9 +54,7 @@ class SignUpViewModel extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
 
-    final url = Uri.parse(
-      'https://dd-api.codesprint.cloud/api/v1/auth/user-signup',
-    );
+    final url = Uri.parse(ApiConfig.authSignup);
 
     try {
       final response = await http.post(
@@ -90,7 +89,7 @@ class SignUpViewModel extends ChangeNotifier {
     }
   }
 
-  void _clearControllers() {
+  void clearControllers() {
     firstNameController.clear();
     lastNameController.clear();
     usernameController.clear();
@@ -98,6 +97,10 @@ class SignUpViewModel extends ChangeNotifier {
     phoneController.clear();
     passwordController.clear();
     confirmPasswordController.clear();
+  }
+
+  void _clearControllers() {
+    clearControllers();
   }
 
   void _showMessage(BuildContext context, String message) {

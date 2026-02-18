@@ -1,8 +1,10 @@
-import 'package:dd_grab/view/loginpage.dart';
+import 'dart:convert';
+import 'package:dd_grab/config/api_config.dart';
+import 'package:dd_grab/view/welcome.dart';
+import 'package:dd_grab/viewmodels/address_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 final profileViewModelProvider = ChangeNotifierProvider(
@@ -10,11 +12,11 @@ final profileViewModelProvider = ChangeNotifierProvider(
 );
 
 class ProfileViewModel extends ChangeNotifier {
-  String name = "Delight Benedict";
+  String name = "Guest";
   String lastname = "";
   String username = "";
-  String email = "delightmben@gmail.com";
-  String phone = "9995300000";
+  String email = "";
+  String phone = "";
 
   bool _hasFetchedProfileData = false;
   bool _isLoggingOut = false; // NEW
@@ -38,20 +40,20 @@ class ProfileViewModel extends ChangeNotifier {
   }
 
   Future<void> fetchProfileData() async {
-    if (_hasFetchedProfileData) return;
-
     final secureStorage = const FlutterSecureStorage();
     final token = await secureStorage.read(key: 'USER_TOKEN');
 
     if (token == null) {
-      debugPrint('No token found in SharedPreferences');
+      debugPrint('No token found - clearing profile data');
+      _clearProfileData();
       return;
     }
+
+    if (_hasFetchedProfileData) return;
+    
     debugPrint('Token: $token');
 
-    final url = Uri.parse(
-      'https://dd-api.codesprint.cloud/api/v1/user/profile',
-    );
+    final url = Uri.parse(ApiConfig.userProfile);
 
     try {
       final response = await http.get(
@@ -100,18 +102,36 @@ class ProfileViewModel extends ChangeNotifier {
 
       _isLoggingOut = false;
       notifyListeners();
-      debugPrint("Logout finished, navigating to LoginPage");
+      debugPrint("Logout finished, navigating to WelcomePage");
 
+      // Navigate first
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-      );
-
-      debugPrint("Bottom nav index reset");
+        MaterialPageRoute(builder: (_) => WelcomePage()),
+      ).then((_) {
+        // Clear profile data and addresses after navigation completes
+        _clearProfileData();
+        ref.read(addressViewModelProvider.notifier).clearAddresses();
+        debugPrint("Profile data and addresses cleared after navigation");
+      });
     } catch (e) {
       _isLoggingOut = false;
       notifyListeners();
       debugPrint("Logout failed: $e");
     }
+  }
+
+  void clearProfileData() {
+    name = "Guest";
+    lastname = "";
+    username = "";
+    email = "";
+    phone = "";
+    _hasFetchedProfileData = false;
+    notifyListeners();
+  }
+
+  void _clearProfileData() {
+    clearProfileData();
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:dd_grab/config/api_config.dart';
 import 'package:dd_grab/main.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -54,9 +55,7 @@ class EditProfileViewModel extends ChangeNotifier {
       return updated;
     }
 
-    final url = Uri.parse(
-      'https://dd-api.codesprint.cloud/api/v1/user/edit-profile',
-    );
+    final url = Uri.parse(ApiConfig.userEditProfile);
 
     try {
       final response = await http.put(
@@ -101,9 +100,7 @@ class EditProfileViewModel extends ChangeNotifier {
 
     if (token == null) return;
 
-    final url = Uri.parse(
-      'https://dd-api.codesprint.cloud/api/v1/user/profile',
-    );
+    final url = Uri.parse(ApiConfig.userProfile);
     try {
       final response = await http.get(
         url,
@@ -132,9 +129,7 @@ class EditProfileViewModel extends ChangeNotifier {
     notifyListeners();
 
     final token = await _secureStorage.read(key: 'USER_TOKEN');
-    final url = Uri.parse(
-      'https://dd-api.codesprint.cloud/api/v1/auth/change-password',
-    );
+    final url = Uri.parse(ApiConfig.authChangePassword);
 
     try {
       final response = await http.post(

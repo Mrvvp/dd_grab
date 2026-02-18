@@ -1,10 +1,11 @@
+import 'dart:convert';
+import 'package:dd_grab/config/api_config.dart';
 import 'package:dd_grab/view/main_navigation_page.dart';
 import 'package:dd_grab/viewmodels/bottom_nav_bar_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 final loginViewModelProvider = ChangeNotifierProvider(
   (ref) => LoginViewModel(),
@@ -29,17 +30,17 @@ class LoginViewModel extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
 
-    final url = Uri.parse(
-      'https://dd-api.codesprint.cloud/api/v1/auth/user-login',
-    );
+    final url = Uri.parse(ApiConfig.authLogin);
 
     try {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
+        body: jsonEncode({'loginInput': email, 'password': password}),
       );
 
+      print('Status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body);
         final token = responseData['data']['token'];
@@ -52,8 +53,7 @@ class LoginViewModel extends ChangeNotifier {
           MaterialPageRoute(builder: (context) => MainNavigationPage()),
           (route) => false,
         );
-        emailController.clear();
-        passwordController.clear();
+        clearControllers();
       } else {
         final responseData = jsonDecode(response.body);
         _showMessage(context, responseData['message'] ?? 'Login failed');
@@ -64,6 +64,11 @@ class LoginViewModel extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  void clearControllers() {
+    emailController.clear();
+    passwordController.clear();
   }
 
   void _showMessage(BuildContext context, String msg) {

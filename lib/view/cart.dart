@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dd_grab/config/api_config.dart';
 import 'package:dd_grab/service/payment_services.dart';
 import 'package:dd_grab/view/address.dart';
 import 'package:dd_grab/view/product_detail.dart';
@@ -6,6 +7,7 @@ import 'package:dd_grab/view/purchase_method.dart';
 import 'package:dd_grab/viewmodels/address_vm.dart';
 import 'package:dd_grab/viewmodels/cart_vm.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -19,10 +21,30 @@ class CartPage extends ConsumerStatefulWidget {
 }
 
 class _CartPageState extends ConsumerState<CartPage> {
+  final TextEditingController _walletController = TextEditingController();
+  bool _agreeToTerms = false;
+
   @override
   void initState() {
     super.initState();
     _refreshCart();
+    _walletController.addListener(_onWalletAmountChanged);
+  }
+
+  @override
+  void dispose() {
+    _walletController.dispose();
+    super.dispose();
+  }
+
+  void _onWalletAmountChanged() {
+    final vm = ref.read(cartViewModelProvider);
+    if (_walletController.text.isNotEmpty && vm.useWallet) {
+      final amount = double.tryParse(_walletController.text) ?? 0.0;
+      vm.updateWalletAmount(amount);
+    } else if (_walletController.text.isEmpty && vm.useWallet) {
+      vm.updateWalletAmount(0.0);
+    }
   }
 
   @override
@@ -126,6 +148,12 @@ class _CartPageState extends ConsumerState<CartPage> {
                             //   ],
                             // ),
                             const Divider(height: 32),
+                            // Wallet Section
+                            _WalletSection(
+                              ref: ref,
+                              walletController: _walletController,
+                            ),
+                            const Divider(height: 32),
                             const Text(
                               "Order Payment Details",
                               style: TextStyle(fontWeight: FontWeight.bold),
@@ -135,17 +163,128 @@ class _CartPageState extends ConsumerState<CartPage> {
                               label: "Order Amount",
                               value: "₹${vm.subtotalAmount.toStringAsFixed(2)}",
                             ),
+                            if (vm.useWallet && vm.walletAmount > 0) ...[
+                              const SizedBox(height: 6),
+                              _DetailRow(
+                                label: "Wallet Discount",
+                                value:
+                                    "-₹${vm.walletAmount.toStringAsFixed(2)}",
+                                valueColor: Colors.green,
+                              ),
+                            ],
                             const SizedBox(height: 6),
                             _DetailRow(
                               label: "Order Total",
                               value: "₹${vm.totalAmount.toStringAsFixed(2)}",
                               isBold: true,
                             ),
+                            const SizedBox(height: 24),
+                            // Terms and Conditions Checkbox
+                            Row(
+                              children: [
+                                Checkbox(
+                                  value: _agreeToTerms,
+                                  fillColor: WidgetStateProperty.resolveWith<
+                                    Color
+                                  >((Set<WidgetState> states) {
+                                    if (states.contains(WidgetState.selected)) {
+                                      return Colors.black;
+                                    }
+                                    return Colors.transparent;
+                                  }),
+                                  checkColor: Colors.white,
+                                  side: const BorderSide(
+                                    color: Colors.black,
+                                    width: 2,
+                                  ),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _agreeToTerms = value ?? false;
+                                    });
+                                  },
+                                ),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _agreeToTerms = !_agreeToTerms;
+                                      });
+                                    },
+                                    child: RichText(
+                                      text: TextSpan(
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.black,
+                                        ),
+                                        children: [
+                                          const TextSpan(
+                                            text: "I agree to the ",
+                                          ),
+                                          TextSpan(
+                                            text: "Terms & Conditions",
+                                            style: const TextStyle(
+                                              decoration:
+                                                  TextDecoration.underline,
+                                              color: Colors.black,
+                                            ),
+                                            recognizer:
+                                                TapGestureRecognizer()
+                                                  ..onTap = () {
+                                                    // Show terms and conditions dialog
+                                                    showDialog(
+                                                      context: context,
+                                                      builder:
+                                                          (
+                                                            context,
+                                                          ) => AlertDialog(
+                                                            title: const Text(
+                                                              "Terms & Conditions",
+                                                              style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                            ),
+                                                            content: const SingleChildScrollView(
+                                                              child: Text(
+                                                                "Please read and accept our Terms & Conditions to proceed with your order.",
+                                                                style:
+                                                                    TextStyle(
+                                                                      fontSize:
+                                                                          14,
+                                                                    ),
+                                                              ),
+                                                            ),
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed: () {
+                                                                  Navigator.pop(
+                                                                    context,
+                                                                  );
+                                                                },
+                                                                child:
+                                                                    const Text(
+                                                                      "Close",
+                                                                    ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                    );
+                                                  },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
             ),
-            if (vm.cartItems.isNotEmpty) _BottomBar(vm: vm),
+            if (vm.cartItems.isNotEmpty)
+              _BottomBar(vm: vm, agreeToTerms: _agreeToTerms),
           ],
         ),
       ),
@@ -414,7 +553,7 @@ class _CartItemCard extends StatelessWidget {
     final firstImage = (images is List) ? images.first : images.toString();
 
     return CachedNetworkImage(
-      imageUrl: 'https://ecom-stag.codesprint.cloud/storage/$firstImage',
+      imageUrl: ApiConfig.getImageUrl(firstImage.toString()),
       width: 110,
       height: 70,
       fit: BoxFit.cover,
@@ -435,15 +574,266 @@ class _CartItemCard extends StatelessWidget {
   }
 }
 
+class _WalletSection extends ConsumerStatefulWidget {
+  final WidgetRef ref;
+  final TextEditingController walletController;
+
+  const _WalletSection({required this.ref, required this.walletController});
+
+  @override
+  ConsumerState<_WalletSection> createState() => _WalletSectionState();
+}
+
+class _WalletSectionState extends ConsumerState<_WalletSection> {
+  @override
+  void initState() {
+    super.initState();
+    // Sync controller with view model when wallet is enabled
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final vm = widget.ref.read(cartViewModelProvider);
+      if (vm.useWallet && vm.walletAmount > 0) {
+        widget.walletController.text = vm.walletAmount.toStringAsFixed(2);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = ref.watch(cartViewModelProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Checkbox for wallet usage
+        Row(
+          children: [
+            Checkbox(
+              value: vm.useWallet,
+              fillColor: WidgetStateProperty.resolveWith<Color>((
+                Set<WidgetState> states,
+              ) {
+                if (states.contains(WidgetState.selected)) {
+                  return Colors.black;
+                }
+                return Colors.transparent;
+              }),
+              checkColor: Colors.white,
+              side: const BorderSide(color: Colors.black, width: 2),
+              onChanged: (value) {
+                final cartVm = ref.read(cartViewModelProvider);
+                cartVm.toggleWalletUsage();
+                if (cartVm.useWallet) {
+                  // Set suggested amount when enabling
+                  final suggestedAmount =
+                      cartVm.totalUsableWallet < cartVm.totalBeforeWallet
+                          ? cartVm.totalUsableWallet
+                          : cartVm.totalBeforeWallet;
+                  widget.walletController.text = suggestedAmount
+                      .toStringAsFixed(2);
+                  cartVm.updateWalletAmount(suggestedAmount);
+                } else {
+                  widget.walletController.clear();
+                }
+              },
+            ),
+            const Expanded(
+              child: Text(
+                "Do you want to use your wallet amount?",
+                style: TextStyle(fontSize: 14, color: Colors.black),
+              ),
+            ),
+          ],
+        ),
+
+        // Show wallet details when checkbox is checked
+        if (vm.useWallet) ...[
+          const SizedBox(height: 12),
+          if (vm.isWalletLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.0),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else ...[
+            // Total Active Wallet
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0, bottom: 6.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Total Active Wallet:",
+                    style: TextStyle(fontSize: 13, color: Colors.black),
+                  ),
+                  Text(
+                    "₹${vm.totalActiveWallet.toStringAsFixed(2)}",
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Total Usable Wallet
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0, bottom: 12.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Total Usable Wallet:",
+                    style: TextStyle(fontSize: 13, color: Colors.black),
+                  ),
+                  Text(
+                    "₹${vm.totalUsableWallet.toStringAsFixed(2)}",
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Enter Amount input field with Apply button
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0, right: 16.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: widget.walletController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Colors.black),
+                      decoration: InputDecoration(
+                        labelText: "Enter Amount",
+                        labelStyle: const TextStyle(color: Colors.black),
+                        hintText: "0.00",
+                        hintStyle: const TextStyle(color: Colors.grey),
+                        prefixText: "₹",
+                        prefixStyle: const TextStyle(color: Colors.black),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Colors.black,
+                            width: 2,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Colors.black,
+                            width: 2,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Colors.black,
+                            width: 2,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                      ),
+                      onChanged: (value) {
+                        final amount = double.tryParse(value) ?? 0.0;
+                        ref
+                            .read(cartViewModelProvider)
+                            .updateWalletAmount(amount);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed:
+                        vm.isWalletLoading
+                            ? null
+                            : () async {
+                              final cartVm = ref.read(cartViewModelProvider);
+                              final success = await cartVm.applyWalletAmount();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      success
+                                          ? 'Wallet amount applied successfully!'
+                                          : cartVm.walletErrorMessage ??
+                                              'Failed to apply wallet amount',
+                                    ),
+                                    backgroundColor:
+                                        success ? Colors.green : Colors.red,
+                                    behavior: SnackBarBehavior.floating,
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              }
+                            },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child:
+                        vm.isWalletLoading
+                            ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                            : const Text(
+                              "Apply",
+                              style: TextStyle(color: Colors.white),
+                            ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Error message if any
+            if (vm.walletErrorMessage != null) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 16.0),
+                child: Text(
+                  vm.walletErrorMessage!,
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
+              ),
+            ],
+          ],
+        ],
+      ],
+    );
+  }
+}
+
 class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
   final bool isBold;
+  final Color? valueColor;
 
   const _DetailRow({
     required this.label,
     required this.value,
     this.isBold = false,
+    this.valueColor,
   });
 
   @override
@@ -461,6 +851,7 @@ class _DetailRow extends StatelessWidget {
           value,
           style: TextStyle(
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            color: valueColor,
           ),
         ),
       ],
@@ -470,8 +861,9 @@ class _DetailRow extends StatelessWidget {
 
 class _BottomBar extends ConsumerStatefulWidget {
   final CartViewModel vm;
+  final bool agreeToTerms;
 
-  const _BottomBar({required this.vm});
+  const _BottomBar({required this.vm, required this.agreeToTerms});
 
   @override
   ConsumerState<_BottomBar> createState() => _BottomBarState();
@@ -507,7 +899,9 @@ class _BottomBarState extends ConsumerState<_BottomBar> {
           ),
           ElevatedButton(
             onPressed:
-                widget.vm.cartItems.isEmpty || _isProcessing
+                widget.vm.cartItems.isEmpty ||
+                        _isProcessing ||
+                        !widget.agreeToTerms
                     ? null
                     : () => _proceedToPayment(context),
             style: ElevatedButton.styleFrom(
@@ -549,6 +943,21 @@ class _BottomBarState extends ConsumerState<_BottomBar> {
   }
 
   Future<void> _proceedToPayment(BuildContext context) async {
+    // Check if terms are agreed
+    if (!widget.agreeToTerms) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please agree to Terms & Conditions to continue'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
     final secureStorage = const FlutterSecureStorage();
     final token = await secureStorage.read(key: 'USER_TOKEN');
 

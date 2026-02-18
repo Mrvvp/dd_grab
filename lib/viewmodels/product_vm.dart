@@ -1,6 +1,7 @@
 // lib/providers/product_list_provider.dart
 
 import 'dart:convert';
+import 'package:dd_grab/config/api_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -171,7 +172,7 @@ class ProductListVM extends StateNotifier<ProductListState> {
       final storage = FlutterSecureStorage();
       final token = await storage.read(key: 'USER_TOKEN');
       final url =
-          'https://dd-api.codesprint.cloud/api/v1/product/category/$categoryId?page=$page&limit=$limit';
+          '${ApiConfig.productCategory}/$categoryId?page=$page&limit=$limit';
       print('DEBUG: API URL: $url');
       final headers = <String, String>{'Content-Type': 'application/json'};
       if (token != null && token.isNotEmpty) {

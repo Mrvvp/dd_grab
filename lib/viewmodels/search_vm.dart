@@ -3,9 +3,7 @@ import 'package:dd_grab/service/search_services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final productRepositoryProvider = Provider<ProductRepository>((ref) {
-  return ProductRepository(
-    baseUrl: 'https://dd-api.codesprint.cloud/api/v1',
-  ); // replace with actual URL
+  return ProductRepository();
 });
 
 final productSearchProvider =

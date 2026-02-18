@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:dd_grab/config/api_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -26,7 +27,7 @@ class HomeViewModel extends ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('https://dd-api.codesprint.cloud/api/v1/category/main'),
+        Uri.parse(ApiConfig.categoryMain),
       );
 
       if (response.statusCode == 200) {

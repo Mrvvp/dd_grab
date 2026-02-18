@@ -35,25 +35,8 @@ class CategoryModel {
   }
 
   static String getIconPath(String slug) {
-    switch (slug) {
-      case 'womens-fashion':
-        return 'assets/images/haircare.png';
-      case 'mens-fashion':
-        return 'assets/images/jacket.png';
-      case 'electronics':
-        return 'assets/images/television.png';
-      case 'home-appliances':
-        return 'assets/images/sofa.png';
-      case 'watches':
-        return 'assets/images/wristwatch.png';
-      case 'consumer-electronics':
-        return 'assets/images/phone.png';
-      case 'backpacks':
-        return 'assets/images/bag.png';
-      case 'toys':
-        return 'assets/images/teddy-bear.png';
-      default:
-        return 'assets/images/default.png';
-    }
+    // Use ddgrab icon as default for all categories
+    // This ensures images work even when category names/slugs change
+    return 'assets/images/ddgrab appicon.png';
   }
 }

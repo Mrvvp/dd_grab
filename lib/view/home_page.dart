@@ -1,8 +1,10 @@
+import 'package:dd_grab/config/api_config.dart';
 import 'package:dd_grab/view/carousel.dart';
 import 'package:dd_grab/view/category_item.dart';
 import 'package:dd_grab/view/product_list.dart';
 import 'package:dd_grab/view/reusable_appbar.dart';
 import 'package:dd_grab/viewmodels/address_vm.dart';
+import 'package:dd_grab/viewmodels/location_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,6 +26,12 @@ class _HomePageState extends ConsumerState<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Fetch addresses (already optimized)
       ref.read(addressViewModelProvider.notifier).fetchAddresses();
+      
+      // Try to get current location if no saved addresses
+      final addressState = ref.read(addressViewModelProvider);
+      if (addressState.addresses.isEmpty) {
+        ref.read(locationViewModelProvider.notifier).getCurrentLocation();
+      }
 
       // Fetch categories if not already loaded
       final homeViewModel = ref.read(homeViewModelProvider);
@@ -135,8 +143,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         (_) => ProductListPage(
                           categoryName: slug,
                           categoryId: '',
-                          apiUrl:
-                              'https://dd-api.codesprint.cloud/api/v1/product/todays-deal',
+                          apiUrl: ApiConfig.productTodaysDeal,
                           isDeals: true,
                           isRecommended: false,
                         ),
@@ -248,10 +255,9 @@ class _DealCard extends StatelessWidget {
           MaterialPageRoute(
             builder:
                 (_) => ProductListPage(
-                  apiUrl:
-                      isDeals
-                          ? 'https://dd-api.codesprint.cloud/api/v1/product/todays-deal'
-                          : 'https://dd-api.codesprint.cloud/api/v1/product/recommended',
+                  apiUrl: isDeals
+                      ? ApiConfig.productTodaysDeal
+                      : ApiConfig.productRecommended,
                   categoryName: categoryName,
                   categoryId: '',
                   isDeals: isDeals,
